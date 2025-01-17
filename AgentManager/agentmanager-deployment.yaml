@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentmanager-deployment
+  namespace: arha-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agentmanager
+  template:
+    metadata:
+      labels:
+        app: agentmanager
+    spec:
+      containers:
+        - name: agentmanager
+          image: kd123456525/agentmanager:1.0
+          ports:
+            - name: http
+              containerPort: 8888
+            - name: websocket
+              containerPort: 50051
+          command: ["python3", "AgentManager_websocket.py"]  
+          args: 
+          - "10.52.52.58"             # 將10.52.52.58更改成Agent_Host(PC4)的IP
+          - "example_account"         # 將example_account更改成Agent_Host(PC4)的使用者ACCOUNT
+          - "example_password"        # 將example_password更改成Agent_Host(PC4)的使用者PASSWORD
+          volumeMounts:
+            - name: logs-volume
+              mountPath: /app/logs
+      volumes:
+        - name: logs-volume
+          persistentVolumeClaim:
+            claimName: arha-logs-pvc
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: arha-node-type
+                operator: In
+                values:
+                - controller-node
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
